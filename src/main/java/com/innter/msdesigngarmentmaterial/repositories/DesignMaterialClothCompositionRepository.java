@@ -1,0 +1,10 @@
+package com.innter.msdesigngarmentmaterial.repositories;
+
+import com.innter.msdesigngarmentmaterial.entities.DesingMaterialClothCompositionEntity;
+import com.innter.msdesigngarmentmaterial.entities.DesingMaterialClothCompositionKey;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface DesignMaterialClothCompositionRepository extends JpaRepository<DesingMaterialClothCompositionEntity, DesingMaterialClothCompositionKey> {
+}
