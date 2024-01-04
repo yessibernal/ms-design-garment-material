@@ -9,6 +9,10 @@ import java.util.List;
 
 public interface IDesignMaterialClothService {
 
-    DesignMaterialClothResponse saveDesignMaterialCloth (DesignMaterialClothRequest designMaterialClothRequest);
+    DesignMaterialClothResponse saveDesignMaterialCloth(DesignMaterialClothRequest designMaterialClothRequest);
+
+    List<DesignMaterialClothResponse> getDesignMaterialCloth(Pageable pageable);
+
+    DesignMaterialClothResponse editedDesignMaterialClothByStatus (DesignRequestStatus designRequestStatus, Long id);
 
 }

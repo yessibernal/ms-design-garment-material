@@ -1,20 +1,22 @@
 package com.innter.msdesigngarmentmaterial.services.IMPL;
 
 import com.innter.msdesigngarmentmaterial.dtos.request.DesignMaterialClothRequest;
+import com.innter.msdesigngarmentmaterial.dtos.request.DesignRequestStatus;
 import com.innter.msdesigngarmentmaterial.dtos.response.DesignMaterialClothResponse;
 import com.innter.msdesigngarmentmaterial.entities.*;
 import com.innter.msdesigngarmentmaterial.exceptions.BadRequestTextil;
+import com.innter.msdesigngarmentmaterial.mappers.DesignMaterialClothMapper;
 import com.innter.msdesigngarmentmaterial.repositories.*;
 import com.innter.msdesigngarmentmaterial.services.IDesignMaterialClothService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -38,6 +40,9 @@ public class DesignMaterialClothService implements IDesignMaterialClothService {
 
     @Autowired
     private DesingMaterialClothGarmentGroupRepository desingMaterialClothGarmentGroupRepository;
+
+    @Autowired
+    private DesignMaterialClothMapper designMaterialClothMapper;
 
     @Transactional
     @Override
@@ -76,7 +81,7 @@ public class DesignMaterialClothService implements IDesignMaterialClothService {
                     desingMaterialClothGarmentGroup.setDesignGarmentGroup(designGarmentGroup);
                     desingMaterialClothGarmentGroup.setDesignMaterialClothGarment(designMaterialCloth);
                     desingMaterialClothGarmentGroupRepository.save(desingMaterialClothGarmentGroup);
-                } );
+                });
             });
 
             DesignMaterialClothResponse designMaterialClothResponse = new DesignMaterialClothResponse();
@@ -94,6 +99,34 @@ public class DesignMaterialClothService implements IDesignMaterialClothService {
         } catch (Exception e) {
             log.error("error: {}", e);
             throw new BadRequestTextil("P-400", HttpStatus.BAD_REQUEST, "El Material de las telas no se pudo crear.");
+        }
+    }
+
+    @Override
+    public List<DesignMaterialClothResponse> getDesignMaterialCloth(Pageable pageable) {
+        try {
+            List<DesignMaterialClothEntity> designMaterialClothEntities = designMaterialClothRepository.findDesignMaterialClothEntity(pageable);
+            List<DesignMaterialClothResponse> designMaterialClothResponses = new ArrayList<>();
+            designMaterialClothEntities.stream().forEach(designMaterialCloth -> {
+                designMaterialClothResponses.add(designMaterialClothMapper.designMaterialClothToDesignMaterialClothResponse(designMaterialCloth));
+            });
+            return designMaterialClothResponses;
+        } catch (Exception e) {
+            log.error("error: {}", e);
+            throw new BadRequestTextil("P-400", HttpStatus.BAD_REQUEST, "Los estampados no se pudieron encontrar.");
+        }
+    }
+
+    @Override
+    public DesignMaterialClothResponse editedDesignMaterialClothByStatus(DesignRequestStatus designRequestStatus, Long id) {
+        try {
+            DesignMaterialClothEntity designMaterialCloth = designMaterialClothRepository.findDesignMaterialClothStatusById(id);
+            designMaterialCloth.setStatus(designRequestStatus.getStatus());
+            designMaterialClothRepository.save(designMaterialCloth);
+            return designMaterialClothMapper.designMaterialClothToDesignMaterialClothResponse(designMaterialCloth);
+        }catch (Exception e){
+            log.error("error: {}", e);
+            throw new BadRequestTextil("P-400", HttpStatus.BAD_REQUEST, "El estampado no fue encontrado.");
         }
     }
 
