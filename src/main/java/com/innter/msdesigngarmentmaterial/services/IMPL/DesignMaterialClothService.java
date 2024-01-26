@@ -41,13 +41,10 @@ public class DesignMaterialClothService implements IDesignMaterialClothService {
     private ProviderRepository providerRepository;
     @Autowired
     private DesignGarmentGroupRepository designGarmentGroupRepository;
-
     @Autowired
     private DesingMaterialClothGarmentGroupRepository desingMaterialClothGarmentGroupRepository;
-
     @Autowired
     private DesignMaterialClothMapper designMaterialClothMapper;
-
 
     @Transactional
     @Override
@@ -58,7 +55,6 @@ public class DesignMaterialClothService implements IDesignMaterialClothService {
         DesignMaterialClothDetailEntity designMaterialClothDetail = designMaterialClothDetailRepository.findDesignMaterialClothDetail(designMaterialClothRequest.getDesignMaterialClothDetailId());
         ProviderEntity providerEntity = providerRepository.findProviderStatusById(designMaterialClothRequest.getProviderId());
         try {
-
             DesignMaterialClothEntity designMaterialCloth = new DesignMaterialClothEntity();
             designMaterialCloth.setName(designMaterialClothRequest.getName());
             designMaterialCloth.setCompositionGroup(compositionGroupEntity);
@@ -77,9 +73,7 @@ public class DesignMaterialClothService implements IDesignMaterialClothService {
                     desingMaterialClothComposition.setPercent(composition.getPercent());
                     designMaterialClothCompositionRepository.save(desingMaterialClothComposition);
                 });
-
             });
-
             designMaterialClothRequest.getDesignGarmentGroup().forEach(garmentGroup -> {
                 designGarmentGroupRepository.findById(garmentGroup.getId_garments_group()).ifPresent(designGarmentGroup -> {
                     DesingMaterialClothGarmentGroupEntity desingMaterialClothGarmentGroup = new DesingMaterialClothGarmentGroupEntity();
@@ -133,7 +127,7 @@ public class DesignMaterialClothService implements IDesignMaterialClothService {
             throw new BadRequestTextil("P-400", HttpStatus.BAD_REQUEST, "El Material de las telas no fue encontrado.");
         }
     }
-
+    
     @Transactional
     @Override
     public DesignMaterialClothResponse editedDesignMaterialCloth(DesignMaterialClothEditedDto designMaterialClothEditedDto, Long id) {
@@ -142,20 +136,15 @@ public class DesignMaterialClothService implements IDesignMaterialClothService {
         DesignMaterialClothDetailEntity designMaterialClothDetail = designMaterialClothDetailRepository.findDesignMaterialClothDetail(designMaterialClothEditedDto.getDesignMaterialClothDetailId());
         ProviderEntity providerEntity = providerRepository.findProviderStatusById(designMaterialClothEditedDto.getProviderId());
         DesignMaterialClothEntity designCloth = findDesignMaterialClothById(designMaterialClothRepository.findById(id));
-        List<DesignCompositionDto> designCompositionDtos = new ArrayList<>();
-        List<Long> listJson = new ArrayList<>();
-        List<Long> listBd = new ArrayList<>();
-        List<Long> listUpdate = new ArrayList<>();
-        List<Long> listDelete = new ArrayList<>();
 
-        List<DesignGarmentGroupDto> designGarmentGroupDtos = new ArrayList<>();
-        List<Long> listJsonGarmentGroup = new ArrayList<>();
-        List<Long> listBdGarmentGroup = new ArrayList<>();
+        List<Long> listCompositionRequest = new ArrayList<>();
+        List<Long> listCompositionUpdate = new ArrayList<>();
+        List<Long> listCompositionDelete = new ArrayList<>();
+        List<Long> listCompositionAdd = new ArrayList<>();
+        List<Long> listRequestGarmentGroup = new ArrayList<>();
         List<Long> listUpdateGarmentGroup = new ArrayList<>();
         List<Long> listDeleteGarmentGroup = new ArrayList<>();
         List<Long> listAddGarmentGroup = new ArrayList<>();
-
-
         try {
             designCloth.setId(id);
             designCloth.setName(designCloth.getName());
@@ -166,141 +155,99 @@ public class DesignMaterialClothService implements IDesignMaterialClothService {
             designCloth.setClothDetail(designMaterialClothDetail);
             designCloth.setProvider(providerEntity);
             designMaterialClothRepository.save(designCloth);
-            designMaterialClothEditedDto.getDesignComposition().forEach(composition -> {
-                listJson.add(composition.getId_composition());
-            });
+            designMaterialClothEditedDto.getDesignComposition().forEach(composition -> listCompositionRequest.add(composition.getId_composition()));
+            designMaterialClothEditedDto.getDesignGarmentGroup().forEach(designGarmentGroup -> listRequestGarmentGroup.add(designGarmentGroup.getId_garments_group()));
 
-            designMaterialClothEditedDto.getDesignGarmentGroup().forEach(designGarmentGroup -> {
-                listJsonGarmentGroup.add(designGarmentGroup.getId_garments_group());
-            });
-
-            List<DesingMaterialClothCompositionEntity> desingMaterialClothCompositionEntities = designMaterialClothCompositionRepository.findDesingMaterialClothComposition(id);
-            desingMaterialClothCompositionEntities.forEach(compositionGroup -> {
-                DesignCompositionDto designCompositionDto = new DesignCompositionDto();
-                designCompositionDto.setId_composition(compositionGroup.getDesignComposition().getId());
-                designCompositionDto.setPercent(compositionGroup.getPercent());
-                designCompositionDtos.add(designCompositionDto);
-                listBd.add(designCompositionDto.getId_composition());
-            });
-
-            List<Long> listAdd = new ArrayList<>();
-            for (Long element : listJson) {
-                if (!listBd.contains(element)) {
-                    listAdd.add(element);
+            List<Long> listCompositionExistNew = getListCompositionAdd(id);
+            listCompositionRequest.forEach(listComposition -> {
+                if (!listCompositionExistNew.contains(listComposition)) {
+                    listCompositionAdd.add(listComposition);
                 }
-            }
-
-            designMaterialClothEditedDto.getDesignComposition().forEach(designComposition -> {
-                listAdd.forEach(listSave -> {
-                    if (designComposition.getId_composition().equals(listSave)) {
-                        designCompositionRepository.findById(listSave).ifPresent(newListComposition -> {
-                            DesingMaterialClothCompositionEntity desingMaterialClothComposition = new DesingMaterialClothCompositionEntity();
-                            desingMaterialClothComposition.setDesignComposition(newListComposition);
-                            desingMaterialClothComposition.setDesignMaterialClothComposition(designCloth);
-                            desingMaterialClothComposition.setPercent(designComposition.getPercent());
-                            designMaterialClothCompositionRepository.save(desingMaterialClothComposition);
-                        });
-                    }
-                });
             });
 
-            for (Long element : listJson) {
-                if (listBd.contains(element)) {
-                    listUpdate.add(element);
+            designMaterialClothEditedDto.getDesignComposition().forEach(designComposition -> listCompositionAdd.forEach(listSave -> {
+                if (designComposition.getId_composition().equals(listSave)) {
+                    designCompositionRepository.findById(listSave).ifPresent(newListComposition -> {
+                        DesingMaterialClothCompositionEntity desingMaterialClothComposition = new DesingMaterialClothCompositionEntity();
+                        desingMaterialClothComposition.setDesignComposition(newListComposition);
+                        desingMaterialClothComposition.setDesignMaterialClothComposition(designCloth);
+                        desingMaterialClothComposition.setPercent(designComposition.getPercent());
+                        designMaterialClothCompositionRepository.save(desingMaterialClothComposition);
+                    });
                 }
-            }
+            }));
+
+            listCompositionRequest.forEach(listComposition -> {
+                if (listCompositionExistNew.contains(listComposition)) {
+                    listCompositionUpdate.add(listComposition);
+                }
+            });
 
             List<DesingMaterialClothCompositionEntity> desingMaterialClothCompositionUpdateList = designMaterialClothCompositionRepository.findDesingMaterialClothComposition(id);
-            desingMaterialClothCompositionUpdateList.forEach(designClothUpdate -> {
-                designMaterialClothEditedDto.getDesignComposition().forEach(composition -> {
-                    listJson.add(composition.getId_composition());
-                    DesingMaterialClothCompositionEntity desingMaterialClothComposition = new DesingMaterialClothCompositionEntity();
-                    desingMaterialClothComposition.setId(designClothUpdate.getId());
-                    desingMaterialClothComposition.setDesignMaterialClothComposition(designClothUpdate.getDesignMaterialClothComposition());
-                    desingMaterialClothComposition.setDesignComposition(designClothUpdate.getDesignComposition());
+            desingMaterialClothCompositionUpdateList.forEach(designClothUpdate -> designMaterialClothEditedDto.getDesignComposition().forEach(composition -> {
+                listCompositionRequest.add(composition.getId_composition());
+                DesingMaterialClothCompositionEntity desingMaterialClothComposition = new DesingMaterialClothCompositionEntity();
+                desingMaterialClothComposition.setId(designClothUpdate.getId());
+                desingMaterialClothComposition.setDesignMaterialClothComposition(designClothUpdate.getDesignMaterialClothComposition());
+                desingMaterialClothComposition.setDesignComposition(designClothUpdate.getDesignComposition());
 
-                    if (composition.getId_composition() == designClothUpdate.getDesignComposition().getId()) {
-                        desingMaterialClothComposition.setPercent(composition.getPercent());
-                        designMaterialClothCompositionRepository.save(desingMaterialClothComposition);
-                    }
-                });
-            });
-
-
-            for (Long element : listBd) {
-                if (!listUpdate.contains(element)) {
-                    listDelete.add(element);
+                if (composition.getId_composition() == designClothUpdate.getDesignComposition().getId()) {
+                    desingMaterialClothComposition.setPercent(composition.getPercent());
+                    designMaterialClothCompositionRepository.save(desingMaterialClothComposition);
                 }
-            }
+            }));
+
+            listCompositionExistNew.forEach(listComposition -> {
+                if (!listCompositionUpdate.contains(listComposition)) {
+                    listCompositionDelete.add(listComposition);
+                }
+            });
 
             List<DesingMaterialClothCompositionEntity> desingMaterialClothCompositionList = designMaterialClothCompositionRepository.findDesingMaterialClothComposition(id);
-            desingMaterialClothCompositionList.forEach(compositionGroup -> {
-                listDelete.forEach(listDeleteComposition -> {
-                    if (compositionGroup.getDesignComposition().getId() == listDeleteComposition) {
-                        designMaterialClothCompositionRepository.delete(compositionGroup);
-                    }
-                });
+            desingMaterialClothCompositionList.forEach(compositionGroup -> listCompositionDelete.forEach(listDeleteComposition -> {
+                if (compositionGroup.getDesignComposition().getId() == listDeleteComposition) {
+                    designMaterialClothCompositionRepository.delete(compositionGroup);
+                }
+            }));
+
+            List<Long> listExistGarmentGroupNew = getListGarmentGroup(id);
+            listRequestGarmentGroup.forEach(listRequest -> {
+                if (!listExistGarmentGroupNew.contains(listRequest)) {
+                    listAddGarmentGroup.add(listRequest);
+                }
             });
 
-            List<DesingMaterialClothGarmentGroupEntity> desingMaterialClothGarmentGroup = desingMaterialClothGarmentGroupRepository.findDesignMaterialClothGarment(id);
-            desingMaterialClothGarmentGroup.forEach(garmentGroup -> {
-                DesignGarmentGroupDto designGarmentGroupDto = new DesignGarmentGroupDto();
-                designGarmentGroupDto.setId_garments_group(garmentGroup.getDesignGarmentGroup().getId());
-                designGarmentGroupDtos.add(designGarmentGroupDto);
-                listBdGarmentGroup.add(designGarmentGroupDto.getId_garments_group());
+            designMaterialClothEditedDto.getDesignGarmentGroup().forEach(designGarmentGroup -> listAddGarmentGroup.forEach(listSaveGarmentGroup -> {
+                if (designGarmentGroup.getId_garments_group().equals(listSaveGarmentGroup)) {
+                    designGarmentGroupRepository.findById(listSaveGarmentGroup).ifPresent(newListGarmentGroup -> {
+                        DesingMaterialClothGarmentGroupEntity clothGarmentGroup = new DesingMaterialClothGarmentGroupEntity();
+                        clothGarmentGroup.setDesignGarmentGroup(newListGarmentGroup);
+                        clothGarmentGroup.setDesignMaterialClothGarment(designCloth);
+                        desingMaterialClothGarmentGroupRepository.save(clothGarmentGroup);
+                    });
+                }
+            }));
+
+            listRequestGarmentGroup.forEach(listRequest -> {
+                if (listExistGarmentGroupNew.contains(listRequest)) {
+                    listUpdateGarmentGroup.add(listRequest);
+                }
             });
 
-            for (Long element : listJsonGarmentGroup) {
-                if (!listBdGarmentGroup.contains(element)) {
-                    listAddGarmentGroup.add(element);
+            listExistGarmentGroupNew.forEach(listExist -> {
+                if (!listUpdateGarmentGroup.contains(listExist)) {
+                    listDeleteGarmentGroup.add(listExist);
                 }
-            }
-
-            designMaterialClothEditedDto.getDesignGarmentGroup().forEach(designGarmentGroup -> {
-                listAddGarmentGroup.forEach(listSaveGarmentGroup -> {
-                    if (designGarmentGroup.getId_garments_group().equals(listSaveGarmentGroup)) {
-                        designGarmentGroupRepository.findById(listSaveGarmentGroup).ifPresent(newListGarmentGroup -> {
-                            DesingMaterialClothGarmentGroupEntity clothGarmentGroup = new DesingMaterialClothGarmentGroupEntity();
-                            clothGarmentGroup.setDesignGarmentGroup(newListGarmentGroup);
-                            clothGarmentGroup.setDesignMaterialClothGarment(designCloth);
-                            desingMaterialClothGarmentGroupRepository.save(clothGarmentGroup);
-                        });
-                    }
-                });
             });
-
-            for (Long element : listJsonGarmentGroup) {
-                if (listBdGarmentGroup.contains(element)) {
-                    listUpdateGarmentGroup.add(element);
-                }
-            }
-
-            for (Long element : listBdGarmentGroup) {
-                if (!listUpdateGarmentGroup.contains(element)) {
-                    listDeleteGarmentGroup.add(element);
-                }
-            }
 
             List<DesingMaterialClothGarmentGroupEntity> desingMaterialClothGarmentGroupList = desingMaterialClothGarmentGroupRepository.findDesignMaterialClothGarment(id);
-            desingMaterialClothGarmentGroupList.forEach(clothGarmentGroup -> {
-                listDeleteGarmentGroup.forEach(listDeleteGarment -> {
-                    if (clothGarmentGroup.getDesignGarmentGroup().getId() == listDeleteGarment) {
-                        desingMaterialClothGarmentGroupRepository.delete(clothGarmentGroup);
-                    }
-                });
-            });
+            desingMaterialClothGarmentGroupList.forEach(clothGarmentGroup -> listDeleteGarmentGroup.forEach(listDeleteGarment -> {
+                if (clothGarmentGroup.getDesignGarmentGroup().getId() == listDeleteGarment) {
+                    desingMaterialClothGarmentGroupRepository.delete(clothGarmentGroup);
+                }
+            }));
 
-            DesignMaterialClothResponse designMaterialClothResponse = new DesignMaterialClothResponse();
-            designMaterialClothResponse.setId(designCloth.getId());
-            designMaterialClothResponse.setName(designCloth.getName());
-            designMaterialClothResponse.setDesignCompositionGroupId(designCloth.getCompositionGroup().getId());
-            designMaterialClothResponse.setWidth(designCloth.getWidth());
-            designMaterialClothResponse.setMeterPrice(designCloth.getMeterPrice());
-            designMaterialClothResponse.setDesignPrintId(designCloth.getPrint().getId());
-            designMaterialClothResponse.setDesignMaterialClothDetailId(designCloth.getClothDetail().getId());
-            designMaterialClothResponse.setProviderId(designCloth.getProvider().getId());
-            designMaterialClothResponse.setDesignComposition(designMaterialClothEditedDto.getDesignComposition());
-            designMaterialClothResponse.setDesignGarmentGroup(designMaterialClothEditedDto.getDesignGarmentGroup());
+            DesignMaterialClothResponse designMaterialClothResponse = getDesignMaterialClothResponse(designMaterialClothEditedDto, designCloth);
             return designMaterialClothResponse;
         } catch (Exception e) {
             log.error("error: {}", e);
@@ -308,9 +255,49 @@ public class DesignMaterialClothService implements IDesignMaterialClothService {
         }
     }
 
-
     private DesignMaterialClothEntity findDesignMaterialClothById(Optional<DesignMaterialClothEntity> optionalDesignMaterialCloth) {
         return optionalDesignMaterialCloth.orElseThrow(() -> new NotFoundTextil("P-404", HttpStatus.NOT_FOUND, "El Material de las telas no fue encontrada."));
     }
 
+    private static DesignMaterialClothResponse getDesignMaterialClothResponse(DesignMaterialClothEditedDto designMaterialClothEditedDto, DesignMaterialClothEntity designCloth) {
+        DesignMaterialClothResponse designMaterialClothResponse = new DesignMaterialClothResponse();
+        designMaterialClothResponse.setId(designCloth.getId());
+        designMaterialClothResponse.setName(designCloth.getName());
+        designMaterialClothResponse.setDesignCompositionGroupId(designCloth.getCompositionGroup().getId());
+        designMaterialClothResponse.setWidth(designCloth.getWidth());
+        designMaterialClothResponse.setMeterPrice(designCloth.getMeterPrice());
+        designMaterialClothResponse.setDesignPrintId(designCloth.getPrint().getId());
+        designMaterialClothResponse.setDesignMaterialClothDetailId(designCloth.getClothDetail().getId());
+        designMaterialClothResponse.setProviderId(designCloth.getProvider().getId());
+        designMaterialClothResponse.setDesignComposition(designMaterialClothEditedDto.getDesignComposition());
+        designMaterialClothResponse.setDesignGarmentGroup(designMaterialClothEditedDto.getDesignGarmentGroup());
+        return designMaterialClothResponse;
+    }
+
+    private List<Long> getListCompositionAdd(Long id) {
+        List<DesignCompositionDto> designCompositionDtos = new ArrayList<>();
+        List<Long> listCompositionExist = new ArrayList<>();
+        List<DesingMaterialClothCompositionEntity> desingMaterialClothCompositionEntities = designMaterialClothCompositionRepository.findDesingMaterialClothComposition(id);
+        desingMaterialClothCompositionEntities.forEach(compositionGroup -> {
+            DesignCompositionDto designCompositionDto = new DesignCompositionDto();
+            designCompositionDto.setId_composition(compositionGroup.getDesignComposition().getId());
+            designCompositionDto.setPercent(compositionGroup.getPercent());
+            designCompositionDtos.add(designCompositionDto);
+            listCompositionExist.add(designCompositionDto.getId_composition());
+        });
+        return listCompositionExist;
+    }
+
+    private List<Long> getListGarmentGroup(long id) {
+        List<DesignGarmentGroupDto> designGarmentGroupDtos = new ArrayList<>();
+        List<Long> listExistGarmentGroupNew = new ArrayList<>();
+        List<DesingMaterialClothGarmentGroupEntity> desingMaterialClothGarmentGroup = desingMaterialClothGarmentGroupRepository.findDesignMaterialClothGarment(id);
+        desingMaterialClothGarmentGroup.forEach(garmentGroup -> {
+            DesignGarmentGroupDto designGarmentGroupDto = new DesignGarmentGroupDto();
+            designGarmentGroupDto.setId_garments_group(garmentGroup.getDesignGarmentGroup().getId());
+            designGarmentGroupDtos.add(designGarmentGroupDto);
+            listExistGarmentGroupNew.add(designGarmentGroupDto.getId_garments_group());
+        });
+        return listExistGarmentGroupNew;
+    }
 }
