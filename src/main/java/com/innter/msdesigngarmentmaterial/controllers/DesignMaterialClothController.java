@@ -1,5 +1,6 @@
 package com.innter.msdesigngarmentmaterial.controllers;
 
+import com.innter.msdesigngarmentmaterial.dtos.DesignMaterialClothEditedDto;
 import com.innter.msdesigngarmentmaterial.dtos.request.DesignMaterialClothRequest;
 import com.innter.msdesigngarmentmaterial.dtos.request.DesignRequestStatus;
 import com.innter.msdesigngarmentmaterial.services.IDesignMaterialClothService;
@@ -47,6 +48,15 @@ public class DesignMaterialClothController {
     public ResponseEntity<?> updateDesignMaterialClothByStatus(@RequestBody DesignRequestStatus designRequestStatus, @PathVariable long id) {
         SuccessResponse responseSuccess = responseUtils.successResponseOK(designMaterialClothService.editedDesignMaterialClothByStatus(designRequestStatus, id),
                 "El Material de las telas con el id:" + id + " cambio su status correctamente.");
+        return new ResponseEntity<>(responseSuccess, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAnyRole ('ADMIN','DESIGN_WRITE')")
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> updateDesignMaterialClothDetail(@RequestBody DesignMaterialClothEditedDto designMaterialClothEditedDto, @PathVariable long id) {
+        SuccessResponse responseSuccess = responseUtils.successResponseOK(
+                designMaterialClothService.editedDesignMaterialCloth(designMaterialClothEditedDto,id),
+                "El Material de las telas con el id:" + id + " se actualizo correctamente.");
         return new ResponseEntity<>(responseSuccess, HttpStatus.OK);
     }
 }
